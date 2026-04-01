@@ -1,0 +1,12 @@
+{"code": 100, "category": "informational", "message": "Continue"}
+{"code": 101, "category": "informational", "message": "Switching Protocols"}
+{"code": 200, "category": "success", "message": "OK"}
+{"code": 201, "category": "success", "message": "Created"}
+{"code": 202, "category": "success", "message": "Accepted"}
+{"code": 400, "category": "client error", "message": "Bad Request"}
+{"code": 401, "category": "client error", "message": "Unauthorized"}
+{"code": 403, "category": "client error", "message": "Forbidden"}
+{"code": 404, "category": "client error", "message": "Not Found"}
+{"code": 500, "category": "server error", "message": "Internal Server Error"}
+{"code": 501, "category": "server error", "message": "Not Implemented"}
+{"code": 502, "category": "server error", "message": "Bad Gateway"}

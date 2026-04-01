@@ -8,7 +8,11 @@
     "id": "my.lookup.management",
     "scopes": [
       { "name": "storage:logs:read", "comment": "default template" },
-      { "name": "storage:buckets:read", "comment": "default template" }
+      { "name": "storage:buckets:read", "comment": "default template" },
+      { "name": "storage:files:read", "comment": "read lookup files" },
+      { "name": "storage:files:write", "comment": "upload lookup files" },
+      { "name": "storage:files:delete", "comment": "delete lookup files" },
+      { "name": "storage:system:read", "comment": "list system files" }
     ]
   }
 }

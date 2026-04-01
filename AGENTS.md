@@ -4,6 +4,9 @@
 
 Before writing any DQL query, the agent must always use the knowledge base (`dql_search` tool) to search for relevant DQL documentation, syntax, and examples, whenever the tool is available.
 
+## Relevant Skills
+./skills.md
+
 ## UI Components - Strato
 
 Before using any Strato UI component, the agent must always use the knowledge base tools to search for relevant component documentation and usage examples, whenever the tools are available:
