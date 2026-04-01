@@ -1,15 +1,16 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { Flex } from "@dynatrace/strato-components/layouts";
 import { TitleBar } from "@dynatrace/strato-components/layouts";
 import { Text } from "@dynatrace/strato-components/typography";
 import { MessageContainer } from "@dynatrace/strato-components/content";
+import { Modal } from "@dynatrace/strato-components/overlays";
 import { DataTable } from "@dynatrace/strato-components-preview/tables";
 import { ProgressCircle } from "@dynatrace/strato-components/content";
-import { useDql } from "@dynatrace-sdk/react-hooks";
+import { useDql, useAppFunction } from "@dynatrace-sdk/react-hooks";
 import Colors from "@dynatrace/strato-design-tokens/colors";
-import { UploadIcon, RefreshIcon } from "@dynatrace/strato-icons";
+import { UploadIcon, RefreshIcon, DeleteIcon, ViewIcon } from "@dynatrace/strato-icons";
 
 type LookupFile = {
   name: string;
@@ -93,6 +94,46 @@ export const LookupList = () => {
 
   const { data, error, isLoading, refetch } = useDql({ query: DQL_QUERY });
 
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<LookupFile | null>(null);
+  const [deletePayload, setDeletePayload] = useState<{ filePath: string } | null>(null);
+  const [deleteTrigger, setDeleteTrigger] = useState(0);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
+
+  const {
+    isLoading: isDeleting,
+    isError: isDeleteError,
+    isSuccess: isDeleteSuccess,
+    error: deleteError,
+    refetch: runDelete,
+  } = useAppFunction(
+    { name: "delete-lookup", data: deletePayload ?? {} },
+    { autoFetch: false, autoFetchOnUpdate: false }
+  );
+
+  useEffect(() => {
+    if (deleteTrigger > 0 && deletePayload) {
+      void runDelete();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deleteTrigger]);
+
+  useEffect(() => {
+    if (isDeleteSuccess) {
+      setDeleteSuccess(deleteTarget?.name ?? "");
+      setDeleteTarget(null);
+      setDeletePayload(null);
+      void refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDeleteSuccess]);
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    setDeletePayload({ filePath: deleteTarget.name });
+    setDeleteTrigger((c) => c + 1);
+  };
+
   const rows = useMemo<LookupFile[]>(() => {
     if (!data?.records) return [];
     return data.records.map((r) => ({
@@ -140,6 +181,24 @@ export const LookupList = () => {
         </TitleBar.Action>
       </TitleBar>
 
+      {deleteSuccess && (
+        <MessageContainer variant="success" onDismiss={() => setDeleteSuccess(null)}>
+          <MessageContainer.Title>Lookup deleted</MessageContainer.Title>
+          <MessageContainer.Description>
+            <strong>{deleteSuccess}</strong> was deleted successfully.
+          </MessageContainer.Description>
+        </MessageContainer>
+      )}
+
+      {isDeleteError && (
+        <MessageContainer variant="critical">
+          <MessageContainer.Title>Delete failed</MessageContainer.Title>
+          <MessageContainer.Description>
+            {deleteError?.message ?? "An unexpected error occurred"}
+          </MessageContainer.Description>
+        </MessageContainer>
+      )}
+
       {error && (
         <MessageContainer variant="critical">
           <MessageContainer.Title>Failed to load lookup files</MessageContainer.Title>
@@ -154,7 +213,13 @@ export const LookupList = () => {
       )}
 
       {!isLoading && !error && (
-        <DataTable data={rows} columns={columns} fullWidth>
+        <DataTable
+          data={rows}
+          columns={columns}
+          fullWidth
+          resizable
+          variant={{ rowSeparation: 'horizontalDividers', verticalDividers: true }}
+        >
           <DataTable.EmptyState>
             <Flex flexDirection="column" alignItems="center" padding={48} gap={8}>
               <Text>No lookup files found</Text>
@@ -163,9 +228,64 @@ export const LookupList = () => {
               </Text>
             </Flex>
           </DataTable.EmptyState>
+          <DataTable.RowActions>
+            {(row: LookupFile) => (
+              <Flex gap={4}>
+                <Button
+                  variant="default"
+                  onClick={() =>
+                    navigate(`/view?path=${encodeURIComponent(row.name)}`)
+                  }
+                >
+                  <Button.Prefix>
+                    <ViewIcon />
+                  </Button.Prefix>
+                  View
+                </Button>
+                <Button
+                  variant="default"
+                  color="critical"
+                  onClick={() => setDeleteTarget(row)}
+                >
+                  <Button.Prefix>
+                    <DeleteIcon />
+                  </Button.Prefix>
+                  Delete
+                </Button>
+              </Flex>
+            )}
+          </DataTable.RowActions>
           <DataTable.Pagination defaultPageSize={25} />
         </DataTable>
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        title="Delete lookup file"
+        show={!!deleteTarget}
+        onDismiss={() => setDeleteTarget(null)}
+        footer={
+          <Flex justifyContent="flex-end" gap={8}>
+            <Button variant="default" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="emphasized"
+              color="critical"
+              onClick={handleDeleteConfirm}
+              loading={isDeleting}
+              disabled={isDeleting}
+            >
+              Delete
+            </Button>
+          </Flex>
+        }
+      >
+        <Text>
+          Are you sure you want to delete{" "}
+          <strong>{deleteTarget?.name}</strong>? This action is irreversible.
+        </Text>
+      </Modal>
     </Flex>
   );
 };
